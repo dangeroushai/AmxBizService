@@ -1,5 +1,6 @@
 package com.amx.bizservice.service.impl;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -24,10 +25,14 @@ import com.amx.bizservice.service.CartService;
 import com.amx.bizservice.service.CustomHodometerService;
 import com.amx.bizservice.service.UserService;
 import com.amx.bizservice.thrift.Response;
+import com.amx.bizservice.thrift.ThriftClient;
 import com.amx.bizservice.util.DesUtil;
+import com.amx.bizservice.util.InvitationCodeUtil;
 import com.amx.bizservice.util.JsonUtil;
 import com.amx.bizservice.util.LogUtil;
 import com.amx.bizservice.util.PictureUtil;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 @Service("userService")
 @CacheConfig(cacheNames = CommonConstants.CACHE_NAME.USER)
@@ -77,6 +82,13 @@ public class UserServiceImpl extends BaseService implements UserService{
 			bo.setPassword(DigestUtils.md5Hex(bo.getPassword()));
 		}
 		
+		try {
+			// 生成唯一邀请码
+			bo.setInvitationCode(genUniqueInvitationCode());
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
 		Response serverResponse = thriftClient.serviceInvoke(this.ServiceName, "save", bo);
 		try {
 			if (serverResponse != null) {
@@ -109,6 +121,20 @@ public class UserServiceImpl extends BaseService implements UserService{
 		return response;
 	}
 	
+	private String genUniqueInvitationCode() throws Exception {
+		UserBo example = new UserBo();
+		while(true){
+			example.setInvitationCode(InvitationCodeUtil.generateRandomStr());
+			Response response = ThriftClient.serviceInvoke(this.ServiceName, "findOneByExample", example);
+			if (!response.isState()){ continue; }
+			
+			UserBo userBo = JsonUtil.mapper.readValue(response.getData(),UserBo.class);
+			if (userBo != null){ continue; }
+			
+			return example.getInvitationCode();
+		}
+	}
+
 	@Override
 	public UserBo login(UserBo loginUserBo){
 		return login(loginUserBo, false);

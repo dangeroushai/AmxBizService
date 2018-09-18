@@ -115,6 +115,8 @@ public class UserBo {
     private Timestamp registTime;
 
 	private String openId;
+	
+	private String invitationCode; 
     
 
 	public String getPassport() {
@@ -135,6 +137,14 @@ public class UserBo {
 
 	public Long getId() {
 		return id;
+	}
+
+	public String getInvitationCode() {
+		return invitationCode;
+	}
+
+	public void setInvitationCode(String invitationCode) {
+		this.invitationCode = invitationCode;
 	}
 
 	public void setId(Long id) {
